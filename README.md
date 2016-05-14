@@ -1,5 +1,5 @@
 # Hyper-V Switch
-Enables or disables Hyper-V without uninstallation to allow using other virtualisation solutions.
+A simple GUI to enable or disable Hyper-V without uninstallation, allowing the use of other virtualisation solutions.
 
 Hyper-V is Microsoft’s virtualisation solution that can be installed with Windows. Visual Studio device emulators for Windows 10 Mobile rely on Hyper-V for the guest system. While this may work in most cases, it has the major disadvantage that Hyper-V is running permanently when installed, unlike application hypervisors like VMware or VirtualBox. With the Hyper-V hypervisor already running, these other virtualisation solutions cannot work properly, for example 64-bit support is no longer available and performance is degraded because the VT-x CPU hardware extensions are not available inside a VM guest (which your entire Windows desktop will then be). When using device emulators for Android or other VM solutions for other work, Hyper-V interferes badly with those virtualisation applications.
 
