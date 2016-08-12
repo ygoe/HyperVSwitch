@@ -9,6 +9,10 @@ namespace HyperVSwitch
 		[DllImport("user32.dll", SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool ExitWindowsEx(ExitWindows uFlags, ShutdownReason dwReason);
+
+		[DllImport("kernel32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		public static extern bool IsProcessorFeaturePresent(ProcessorFeature processorFeature);
 	}
 
 	[Flags]
@@ -66,5 +70,10 @@ namespace HyperVSwitch
 
 		FlagUserDefined = 0x40000000,
 		FlagPlanned = 0x80000000
+	}
+
+	public enum ProcessorFeature
+	{
+		PF_VIRT_FIRMWARE_ENABLED = 21
 	}
 }

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace HyperVSwitch
@@ -23,8 +24,23 @@ namespace HyperVSwitch
 		{
 			InitializeComponent();
 
-			isHyperVActive = GetHyperVStatus();
+			statusLabel.Text = "Detecting current state…\nThis may take a few seconds.";
+			statusLabel.ForeColor = Color.Gray;
+			actionButton.Visible = false;
+			infoLabel.Text = "© 2016 Yves Goergen, GNU GPL v3";
+		}
+
+		#endregion Constructors
+
+		#region Window event handlers
+
+		private async void MainForm_Load(object sender, EventArgs args)
+		{
+			isHyperVActive = await GetHyperVStatus();
 			isHyperVRunning = GetHyperVRunning();
+
+			actionButton.Visible = true;
+			actionButton.Focus();
 
 			if (isHyperVActive == true)
 			{
@@ -53,15 +69,11 @@ namespace HyperVSwitch
 			else
 			{
 				statusLabel.Text = "The current state of Hyper-V is UNKNOWN. The Hyper-V role may not be installed on this computer.";
+				statusLabel.ForeColor = SystemColors.WindowText;
 				actionButton.Text = "No action available";
 				actionButton.Enabled = false;
 			}
-			infoLabel.Text = "© 2016 Yves Goergen, GNU GPL v3";
 		}
-
-		#endregion Constructors
-
-		#region Window event handlers
 
 		private void MainForm_KeyDown(object sender, KeyEventArgs args)
 		{
@@ -69,43 +81,71 @@ namespace HyperVSwitch
 			{
 				Application.Exit();
 			}
+			if (args.KeyCode == Keys.F1 && args.Modifiers == 0)
+			{
+				string message =
+					"Hyper-V Switch allows you to enable or disable permanent virtualisation with Hyper-V without uninstalling it so that you can use Hyper-V and other virtualisation solutions like VMware or VirtualBox easily. This setting is stored in the boot configuration so that the computer must be restarted to apply the new setting.\n\n" +
+					"For more information please click on the link to open the website.\n\n" +
+					"Available keyboard shortcuts:\n\n" +
+					"Escape: Close program\n" +
+					"Shift+Click: Change state but skip restart (you need to restart manually)";
+				MessageBox.Show(message, "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			}
 		}
 
 		#endregion Window event handlers
 
 		#region Control event handlers
 
-		private void ActionButton_Click(object sender, EventArgs args)
+		private async void ActionButton_Click(object sender, EventArgs args)
 		{
-			if (!justRestart)
+			bool shiftKeyPressed = ModifierKeys == Keys.Shift;
+			actionButton.Enabled = false;
+			try
 			{
-				if (isHyperVActive == true)
+				if (!justRestart)
 				{
-					if (!SetHyperVStatus(false))
+					if (isHyperVActive == true)
 					{
-						MessageBox.Show("Deactivating Hyper-V failed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-						return;
+						if (!await SetHyperVStatus(false))
+						{
+							MessageBox.Show("Deactivating Hyper-V failed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+							return;
+						}
+					}
+					else if (isHyperVActive == false)
+					{
+						if (!await SetHyperVStatus(true))
+						{
+							MessageBox.Show("Activating Hyper-V failed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+							return;
+						}
+					}
+					else
+					{
+						return;   // Should not happen
 					}
 				}
-				else if (isHyperVActive == false)
+
+				if (!shiftKeyPressed)
 				{
-					if (!SetHyperVStatus(true))
+					if (!SafeNativeMethods.ExitWindowsEx(
+						ExitWindows.Reboot,
+						ShutdownReason.MajorOperatingSystem | ShutdownReason.MinorReconfig | ShutdownReason.FlagPlanned))
 					{
-						MessageBox.Show("Activating Hyper-V failed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-						return;
+						//int error = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+						//string errorMessage = new System.ComponentModel.Win32Exception(error).Message;
+						//MessageBox.Show($"Restarting the computer failed. {errorMessage} (Error {error}) Trying another method…", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+						// ExitWindowsEx fails on Windows 10.
+						// Use the system command, there's no feedback from it.
+						Process.Start("shutdown.exe", "-r -t 0");
 					}
-				}
-				else
-				{
-					return;   // Should not happen
 				}
 			}
-
-			if (!SafeNativeMethods.ExitWindowsEx(
-				ExitWindows.RestartApps,
-				ShutdownReason.MajorOperatingSystem | ShutdownReason.MinorReconfig | ShutdownReason.FlagPlanned))
+			finally
 			{
-				MessageBox.Show("Restarting the computer failed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				actionButton.Enabled = true;
 			}
 
 			// System is restarted. Prevent further actions
@@ -121,7 +161,7 @@ namespace HyperVSwitch
 
 		#region Hyper-V support methods
 
-		private bool? GetHyperVStatus()
+		private async Task<bool?> GetHyperVStatus()
 		{
 			var startInfo = new ProcessStartInfo
 			{
@@ -133,6 +173,7 @@ namespace HyperVSwitch
 			};
 			using (var process = Process.Start(startInfo))
 			{
+				await process.WaitForExitAsync();
 				while (!process.StandardOutput.EndOfStream)
 				{
 					string line = process.StandardOutput.ReadLine();
@@ -145,7 +186,7 @@ namespace HyperVSwitch
 			return null;
 		}
 
-		private bool SetHyperVStatus(bool active)
+		private async Task<bool> SetHyperVStatus(bool active)
 		{
 			var startInfo = new ProcessStartInfo
 			{
@@ -156,15 +197,14 @@ namespace HyperVSwitch
 			};
 			using (var process = Process.Start(startInfo))
 			{
-				process.WaitForExit();
+				await process.WaitForExitAsync();
 				return process.ExitCode == 0;
 			}
 		}
 
 		private bool? GetHyperVRunning()
 		{
-			// TODO
-			return null;
+			return !SafeNativeMethods.IsProcessorFeaturePresent(ProcessorFeature.PF_VIRT_FIRMWARE_ENABLED);
 		}
 
 		#endregion Hyper-V support methods
