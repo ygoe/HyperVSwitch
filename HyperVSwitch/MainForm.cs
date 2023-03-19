@@ -27,6 +27,11 @@ namespace HyperVSwitch
 			statusLabel.Text = "Detecting current state…\nThis may take a few seconds.";
 			statusLabel.ForeColor = Color.Gray;
 			actionButton.Visible = false;
+
+			toggleButton.Visible = false;
+			refreshButton.Visible = false;
+			refreshButton.Text = "Refresh current state";
+
 			infoLabel.Text = "© 2016 Yves Goergen, GNU GPL v3";
 		}
 
@@ -39,6 +44,9 @@ namespace HyperVSwitch
 			isHyperVActive = await GetHyperVStatus();
 			isHyperVRunning = GetHyperVRunning();
 
+			refreshButton.Visible = true;
+			toggleButton.Visible = true;
+
 			actionButton.Visible = true;
 			actionButton.Focus();
 
@@ -47,6 +55,7 @@ namespace HyperVSwitch
 				statusLabel.Text = "Hyper-V is ACTIVE.";
 				statusLabel.ForeColor = Color.ForestGreen;
 				actionButton.Text = "Deactivate Hyper-V and restart computer";
+				toggleButton.Text = "Deactivate only (no restart)";
 				if (isHyperVRunning == false)
 				{
 					statusLabel.Text += " However, it is currently NOT running, so a restart may be pending.";
@@ -59,6 +68,7 @@ namespace HyperVSwitch
 				statusLabel.Text = "Hyper-V is DEACTIVATED.";
 				statusLabel.ForeColor = Color.Firebrick;
 				actionButton.Text = "Activate Hyper-V and restart computer";
+				toggleButton.Text = "Activate only (no restart)";
 				if (isHyperVRunning == true)
 				{
 					statusLabel.Text += " However, it is currently running, so a restart may be pending.";
@@ -72,6 +82,8 @@ namespace HyperVSwitch
 				statusLabel.ForeColor = SystemColors.WindowText;
 				actionButton.Text = "No action available";
 				actionButton.Enabled = false;
+				toggleButton.Visible = false;
+				toggleButton.Enabled = false;
 			}
 		}
 
@@ -84,11 +96,13 @@ namespace HyperVSwitch
 			if (args.KeyCode == Keys.F1 && args.Modifiers == 0)
 			{
 				string message =
-					"Hyper-V Switch allows you to enable or disable permanent virtualisation with Hyper-V without uninstalling it so that you can use Hyper-V and other virtualisation solutions like VMware or VirtualBox easily. This setting is stored in the boot configuration so that the computer must be restarted to apply the new setting.\n\n" +
+					"Hyper-V Switch allows you to enable or disable permanent virtualisation with Hyper-V without uninstalling it so that you can use Hyper-V " +
+					"and other virtualisation solutions like VMware or VirtualBox easily. This setting is stored in the boot configuration (bcdedit > hypervisorlaunchtype) " +
+					"so that the computer must be restarted to apply the new setting.\n\n" +
 					"For more information please click on the link to open the website.\n\n" +
 					"Available keyboard shortcuts:\n\n" +
 					"Escape: Close program\n" +
-					"Shift+Click: Change state but skip restart (you need to restart manually)";
+					"Shift+Click(" + actionButton.Text + "): Change state but skip restart (you need to restart manually)";
 				MessageBox.Show(message, "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
 			}
 		}
@@ -101,6 +115,8 @@ namespace HyperVSwitch
 		{
 			bool shiftKeyPressed = ModifierKeys == Keys.Shift;
 			actionButton.Enabled = false;
+			refreshButton.Enabled = false;
+			toggleButton.Enabled = false;
 			try
 			{
 				if (!justRestart)
@@ -146,6 +162,8 @@ namespace HyperVSwitch
 			finally
 			{
 				actionButton.Enabled = true;
+				refreshButton.Enabled = true;
+				toggleButton.Enabled = true;
 			}
 
 			// System is restarted. Prevent further actions
@@ -155,6 +173,54 @@ namespace HyperVSwitch
 		private void InfoLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs args)
 		{
 			Process.Start("http://unclassified.software/");
+		}
+
+		private void refreshButton_Click(object sender, EventArgs e)
+		{
+			actionButton.Enabled = false;
+			refreshButton.Enabled = false;
+			toggleButton.Enabled = false;
+			MainForm_Load(sender, e);
+			actionButton.Enabled = true;
+			refreshButton.Enabled = true;
+			toggleButton.Enabled = true;
+		}
+
+		private async void toggleButton_Click(object sender, EventArgs e)
+		{
+			actionButton.Enabled = false;
+			refreshButton.Enabled = false;
+			toggleButton.Enabled = false;
+			try
+			{
+				if (isHyperVActive == true)
+				{
+					if (!await SetHyperVStatus(false))
+					{
+						MessageBox.Show("Deactivating Hyper-V failed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+						return;
+					}
+				}
+				else if (isHyperVActive == false)
+				{
+					if (!await SetHyperVStatus(true))
+					{
+						MessageBox.Show("Activating Hyper-V failed.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+						return;
+					}
+				}
+				else
+				{
+					return;   // Should not happen
+				}
+			}
+			finally
+			{
+				MainForm_Load(sender, e);
+				actionButton.Enabled = true;
+				refreshButton.Enabled = true;
+				toggleButton.Enabled = true;
+			}
 		}
 
 		#endregion Control event handlers
@@ -208,5 +274,6 @@ namespace HyperVSwitch
 		}
 
 		#endregion Hyper-V support methods
+
 	}
 }

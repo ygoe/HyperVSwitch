@@ -33,6 +33,8 @@
 			this.infoLabel = new System.Windows.Forms.LinkLabel();
 			this.label1 = new System.Windows.Forms.Label();
 			this.panel1 = new System.Windows.Forms.Panel();
+			this.refreshButton = new System.Windows.Forms.Button();
+			this.toggleButton = new System.Windows.Forms.Button();
 			this.panel1.SuspendLayout();
 			this.SuspendLayout();
 			// 
@@ -84,18 +86,45 @@
 			this.panel1.BackColor = System.Drawing.SystemColors.Control;
 			this.panel1.Controls.Add(this.label1);
 			this.panel1.Controls.Add(this.infoLabel);
-			this.panel1.Location = new System.Drawing.Point(0, 113);
+			this.panel1.Dock = System.Windows.Forms.DockStyle.Bottom;
+			this.panel1.Location = new System.Drawing.Point(0, 190);
 			this.panel1.Margin = new System.Windows.Forms.Padding(0);
 			this.panel1.Name = "panel1";
 			this.panel1.Size = new System.Drawing.Size(379, 44);
 			this.panel1.TabIndex = 5;
+			// 
+			// refreshButton
+			// 
+			this.refreshButton.FlatStyle = System.Windows.Forms.FlatStyle.System;
+			this.refreshButton.Location = new System.Drawing.Point(44, 135);
+			this.refreshButton.Margin = new System.Windows.Forms.Padding(35, 3, 35, 3);
+			this.refreshButton.Name = "refreshButton";
+			this.refreshButton.Size = new System.Drawing.Size(291, 31);
+			this.refreshButton.TabIndex = 6;
+			this.refreshButton.Text = "refreshButton";
+			this.refreshButton.UseVisualStyleBackColor = true;
+			this.refreshButton.Click += new System.EventHandler(this.refreshButton_Click);
+			// 
+			// toggleButton
+			// 
+			this.toggleButton.FlatStyle = System.Windows.Forms.FlatStyle.System;
+			this.toggleButton.Location = new System.Drawing.Point(44, 98);
+			this.toggleButton.Margin = new System.Windows.Forms.Padding(35, 3, 35, 3);
+			this.toggleButton.Name = "toggleButton";
+			this.toggleButton.Size = new System.Drawing.Size(291, 31);
+			this.toggleButton.TabIndex = 7;
+			this.toggleButton.Text = "toggleButton";
+			this.toggleButton.UseVisualStyleBackColor = true;
+			this.toggleButton.Click += new System.EventHandler(this.toggleButton_Click);
 			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
 			this.BackColor = System.Drawing.SystemColors.Window;
-			this.ClientSize = new System.Drawing.Size(379, 157);
+			this.ClientSize = new System.Drawing.Size(379, 234);
+			this.Controls.Add(this.toggleButton);
+			this.Controls.Add(this.refreshButton);
 			this.Controls.Add(this.panel1);
 			this.Controls.Add(this.actionButton);
 			this.Controls.Add(this.statusLabel);
@@ -121,6 +150,8 @@
 		private System.Windows.Forms.LinkLabel infoLabel;
 		private System.Windows.Forms.Label label1;
 		private System.Windows.Forms.Panel panel1;
+		private System.Windows.Forms.Button refreshButton;
+		private System.Windows.Forms.Button toggleButton;
 	}
 }
 
